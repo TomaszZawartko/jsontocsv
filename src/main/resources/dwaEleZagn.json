@@ -1,0 +1,90 @@
+{
+	
+
+	"something":"cos",
+	"som2":"cosinnego",
+	
+	"jakslista":[
+	{
+		"ide":"ed",
+		"bibe":"sde"
+	},
+	{
+		"ide":"ed",
+		"bibe":"sde"
+	}
+	],
+	
+   "reservations":[
+      {
+         "id":"1318504",
+         "number":"11",
+         "add_date":"2020-07-07 07:48:09",
+         "deposit":720,
+         "rooms":[
+            {
+               "type_id":"r1",
+               "name":"r1 room1",
+               "id":"28902",
+               "adults":1
+            },
+            {
+               "type_id":"r1",
+               "name":"r1 room2",
+               "id":"28906",
+               "adults":2
+            }
+         ],
+         "customers":[
+            {
+               "cust_id":1,
+               "cust_name":"Tomek",
+			   "childrens":[
+			   {
+					"child_name":"abc",
+					"child_sex":"def"
+			   },
+			   {
+					"child_name":"abcx",
+					"child_sex":"xdef"
+			   }
+			   ]
+            },
+            {
+               "cust_id":2,
+               "cust_name":"Basia"
+            }
+         ]
+      },
+      {
+         "id":"1318501",
+         "number":"10",
+         "add_date":"2020-07-07 07:47:05",
+         "deposit":68,
+         "rooms":[
+            {
+               "type_id":"r2",
+               "name":"r2 room1",
+               "id":"28860",
+               "adults":8
+            },
+            {
+               "type_id":"r2",
+               "name":"r2 room2",
+               "id":"28886",
+               "adults":9
+            }
+         ],
+         "customers":[
+            {
+               "cust_id":3,
+               "cust_name":"r2 c1 John"
+            },
+            {
+               "cust_id":4,
+               "cust_name":"r2 c2 Mark"
+            }
+         ]
+      }
+   ]
+}
