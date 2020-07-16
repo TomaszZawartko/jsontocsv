@@ -28,16 +28,18 @@ public class JsonMain {
     static List<Map<String, String>> result = new LinkedList<>();
 
     public static void main(String[] args) throws IOException {
+        ClassLoader classLoader = new JsonMain().getClass().getClassLoader();
 
-        //String jsonContent = FileUtils.readFileToString(new File("C:\\Users\\Tomek\\Desktop\\test\\json\\dwaEleZagn\\dwaEleZagn.json"));
-        String jsonContent = FileUtils.readFileToString(new File("C:\\Users\\Tomek\\Desktop\\test\\json\\oneLvl\\oneLvl.json"));
+        File input = new File(classLoader.getResource("input4.json").getFile());
+        String jsonContent = FileUtils.readFileToString(input);
 
         JsonParser jsonParser = new JsonParser();
-        List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.EMPTY_LIST);
+        List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
 
 
         ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = (ObjectNode) mapper.readTree(new File("C:\\Users\\Tomek\\Desktop\\test\\json\\dwaEleZagn\\dwaEleZagn.json"));
+        ObjectNode node = (ObjectNode) mapper.readTree(input);
+        createSimpleHeaders(node,"");
         //String pretty = node.toString();
         //createHeaders(node,"");
         String nodeString = node.toString();
@@ -209,6 +211,24 @@ public class JsonMain {
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
             arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName));
+        }
+    }
+
+    static void createSimpleHeaders(JsonNode node, String parentName) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            objectNode.fields().forEachRemaining(entry -> {
+                String nodeName = parentName + "." + entry.getKey();
+                JsonNode n = entry.getValue();
+                if (!n.isArray()) {
+                    headers.add(nodeName);
+                } else {
+                    createSimpleHeaders(n, entry.getKey());
+                }
+            });
+        } else if (node.isArray()) {
+            ArrayNode arrayNode = (ArrayNode) node;
+            arrayNode.elements().forEachRemaining(item -> createSimpleHeaders(item, parentName));
         }
     }
 

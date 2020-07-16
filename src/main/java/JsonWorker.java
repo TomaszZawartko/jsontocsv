@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import net.minidev.json.JSONArray;
 
 import java.util.LinkedHashMap;
@@ -14,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 class JsonWorker {
@@ -25,6 +25,7 @@ class JsonWorker {
     private final List<String> jsonPathsToDelete = new LinkedList<>();
     private final Set<HeaderContainer> headersContainer = new LinkedHashSet<>();
     private final ObjectMapper mapper = new ObjectMapper();
+    private final Set<String> simpleHeaders = new LinkedHashSet<>();
 
     JsonWorker(JsonNode node) {
         this.root = Objects.requireNonNull(node);
@@ -73,7 +74,11 @@ class JsonWorker {
         //zmieniamy nazwy atrybutow na root.group1. ... .groupN.attributName
         Set<HeaderContainer> headersContainer = this.createHeaders(/*startNodeName*/"",/*"." + startNodeName + "[*]"*/"");
         for (HeaderContainer header : headersContainer) {
-            jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
+            try {
+                //jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
+            } catch(PathNotFoundException ex){
+                //jsonContext.add(header.jsonPath, header.newAttributeName);
+            }
         }
         return jsonContext.jsonString();
     }
@@ -83,6 +88,11 @@ class JsonWorker {
         headersContainer.forEach(header -> header.jsonPath = header.jsonPath + "[*]");
         headersContainer.forEach(header -> header.jsonPath = header.jsonPath.replaceFirst(Pattern.quote("[*]"), ""));
         return headersContainer;
+    }
+
+    public Set<String> createSimpleHeaders(){
+        createSimpleHeaders(root,"");
+        return simpleHeaders;
     }
 
     private void findAllSimpleAttributes(JsonNode node, String nestedElementName) {
@@ -152,6 +162,24 @@ class JsonWorker {
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
             arrayNode.elements().forEachRemaining(item -> createHeadersContainer(item, parentName, path));
+        }
+    }
+
+    private void createSimpleHeaders(JsonNode node, String parentName) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            objectNode.fields().forEachRemaining(entry -> {
+                String nodeName = parentName + "." + entry.getKey();
+                JsonNode n = entry.getValue();
+                if (!n.isArray()) {
+                    simpleHeaders.add(nodeName);
+                } else {
+                    createSimpleHeaders(n, entry.getKey());
+                }
+            });
+        } else if (node.isArray()) {
+            ArrayNode arrayNode = (ArrayNode) node;
+            arrayNode.elements().forEachRemaining(item -> createSimpleHeaders(item, parentName));
         }
     }
 }

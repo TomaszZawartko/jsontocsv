@@ -1,19 +1,14 @@
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import net.minidev.json.JSONArray;
-import org.apache.commons.io.FileUtils;
+import org.assertj.core.internal.bytebuddy.dynamic.scaffold.MethodGraph;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +22,7 @@ public class JsonParser {
     public List<Map<String, String>> parse(String json, List<ObjectNode> reservations, String startParsingNodeName, List<String> nodesToIgnore) throws IOException {
         JsonWorker worker = new JsonWorker(json);
         String jsonNodePreparedForParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
+        Set<String> headers = worker.createSimpleHeaders();
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonNodePreparedForParsing);
@@ -36,10 +32,30 @@ public class JsonParser {
             firstLevel.add((ObjectNode)element);
         });
         processRoot(firstLevel, startParsingNodeName);
-         return result;
+        addBlankValuesToUnfilledAttributes(headers);
+        List<Map<String, String>> sortedResult = sortByHeaders(headers);
+        return result;
     }
 
+    private void addBlankValuesToUnfilledAttributes(Set<String> headers){
+        result.forEach(row -> {
+            headers.forEach(header -> {
+                row.putIfAbsent(header, "");
+            });
+        });
+    }
 
+    private List<Map<String, String>> sortByHeaders(Set<String> headers){
+        List<Map<String, String>> sortedResult = new LinkedList<>();
+        result.forEach(row -> {
+            Map<String, String> sortedRow = new LinkedHashMap<>();
+            headers.forEach(header -> {
+                sortedRow.put(header, row.get(header));
+            });
+            sortedResult.add(sortedRow);
+        });
+        return sortedResult;
+    }
 /*    private JsonNode prepareJsonBeforeParsing(String node, List<String> nodesToIgnore, String startNodeName) throws JsonProcessingException {
         String jsonStringForPreparingToParsing = JsonPath.parse(node).read("." + startNodeName + "[*]");
         //usuwamy zbedne wezly
@@ -107,6 +123,9 @@ public class JsonParser {
             for(Map.Entry<JsonNode, List<ObjectNode>> oneGroup : nestedElementsGroupedByGroupName.entrySet()){
                 String groupName = oneGroup.getKey().asText();
                 List<ObjectNode> groupValues = oneGroup.getValue();
+                for(ObjectNode node : groupValues){
+                    node.remove("group");
+                }
                 listOfGroupedNestedNodes.add(groupValues);
             }
             List<ObjectNode> permutatedGroups = new LinkedList<>();
@@ -144,7 +163,7 @@ public class JsonParser {
         }
     }
 
-    /** Recursive implementation for {@link #permutations(List, Collection)} */
+  //  /** Recursive implementation for {@link #permutations(List, Collection)} */
     private <T> void permutationsImpl(List<Collection<T>> ori, Collection<List<T>> res, int d, List<T> current) {
         // if depth equals number of original collections, final reached, add and return
         if (d == ori.size()) {
