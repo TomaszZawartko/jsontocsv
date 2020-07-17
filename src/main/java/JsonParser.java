@@ -15,13 +15,13 @@ public class JsonParser {
 
     private final List<Map<String, String>> result = new LinkedList<>();
 
-    public List<Map<String, String>> parse(String json, List<ObjectNode> reservations, String startParsingNodeName, List<String> nodesToIgnore) throws IOException {
+    public List<Map<String, String>> parse(String json, String startParsingNodeName, List<String> nodesToIgnore) throws IOException {
         JsonWorker worker = new JsonWorker(json);
-        String jsonNodePreparedForParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
+        String jsonPreparedToParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
         Set<String> headers = worker.createNormalHeaders();
 
         ObjectMapper mapper = new ObjectMapper();
-        ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonNodePreparedForParsing);
+        ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonPreparedToParsing);
         ArrayNode array = (ArrayNode)jsonAfterPreparing.get(startParsingNodeName);
         List<ObjectNode> firstLevel = new LinkedList<>();
         array.elements().forEachRemaining(element -> {

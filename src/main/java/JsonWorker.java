@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidModificationException;
 import com.jayway.jsonpath.JsonPath;
 import net.minidev.json.JSONArray;
 
@@ -20,11 +21,11 @@ import java.util.regex.Pattern;
 class JsonWorker {
 
     private JsonNode root;
-    private final Map<String, ArrayNode> allNestedElements = new LinkedHashMap<>();
+    private final ObjectMapper mapper = new ObjectMapper();
     private final Map<String, String> allSimpleAttributes = new LinkedHashMap<>();
+    private final Map<String, ArrayNode> allNestedElements = new LinkedHashMap<>();
     private final List<String> jsonPathsToDelete = new LinkedList<>();
     private final Set<HeaderContainer> headersContainer = new LinkedHashSet<>();
-    private final ObjectMapper mapper = new ObjectMapper();
     private final Set<String> normalHeaders = new LinkedHashSet<>();
 
     JsonWorker(JsonNode node) {
@@ -63,9 +64,12 @@ class JsonWorker {
         //zmieniamy nazwy atrybutow na root.group1. ... .groupN.attributName
         //Set<HeaderContainer> headersContainer = this.createHeaders(/*startNodeName*/"",/*"." + startNodeName + "[*]"*/"");
         Set<HeaderContainer> headersContainer = this.createHeaderContainerForEachSimpleAttribute();
+        long start = System.currentTimeMillis();
         for (HeaderContainer header : headersContainer) {
-            jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
+            //jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
         }
+        long end = System.currentTimeMillis() - start;
+        System.out.println(end/1000L);
         return jsonContext.jsonString();
     }
 

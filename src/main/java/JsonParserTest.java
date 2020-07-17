@@ -29,7 +29,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations", Arrays.asList("furnishings", "addresses"));
+            newres = jsonParser.parse(jsonContent,"reservations", Arrays.asList("furnishings", "addresses"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -94,7 +94,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations", Arrays.asList("furnishings"));
+            newres = jsonParser.parse(jsonContent,"reservations", Arrays.asList("furnishings"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -182,7 +182,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+            newres = jsonParser.parse(jsonContent,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -205,7 +205,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+            newres = jsonParser.parse(jsonContent,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -236,7 +236,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+            newres = jsonParser.parse(jsonContent,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -283,7 +283,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+            newres = jsonParser.parse(jsonContent,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -373,7 +373,7 @@ public class JsonParserTest {
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = new LinkedList<>();
         try {
-            newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+            newres = jsonParser.parse(jsonContent,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
         } catch (IOException e) {
             e.printStackTrace();
         }

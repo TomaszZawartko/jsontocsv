@@ -1,15 +1,7 @@
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import net.minidev.json.JSONArray;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -17,12 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class JsonMain {
     static Set<String> headers = new LinkedHashSet<>();
@@ -33,31 +20,13 @@ public class JsonMain {
     public static void main(String[] args) throws IOException {
         ClassLoader classLoader = new JsonMain().getClass().getClassLoader();
 
-        File input = new File(classLoader.getResource("input6.json").getFile());
+        File input = new File(classLoader.getResource("input2.json").getFile());
         String jsonContent = FileUtils.readFileToString(input);
         JsonParser jsonParser = new JsonParser();
-        List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
-
-        List<String> a = Arrays.asList("a", "b");
-        List<String> b = Arrays.asList("c", "d");
-        List<String> e = Arrays.asList("e", "f", "g");
-        List<List<String>> c = Arrays.asList(a, b, e);
-        List<List<String>> d = permutations(c);
-
-        List<String> res = new LinkedList<>();
-        d.stream().forEach(list -> {
-            res.add(list.stream().reduce((s1,s2) -> s1+s2).orElse(""));
-        });
-
-        List<String> flat =
-                d.stream()
-                        .flatMap(List::stream)
-                        .collect(Collectors.toList());
-        System.out.println("OK");
-        List<String> result = new LinkedList<>();
-        generatePermutations(c, result, 0, "");
-        System.out.println("OK");
-
+        long start = System.currentTimeMillis();
+        List<Map<String, String>> newres = jsonParser.parse(jsonContent,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+        long end = System.currentTimeMillis() - start;
+        System.out.println(end/1000L);
     }
 
     static void generatePermutations(List<List<String>> lists, List<String> result, int depth, String current) {
