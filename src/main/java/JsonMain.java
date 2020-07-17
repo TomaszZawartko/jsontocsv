@@ -9,7 +9,6 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -32,17 +32,22 @@ public class JsonMain {
 
         File input = new File(classLoader.getResource("input4.json").getFile());
         String jsonContent = FileUtils.readFileToString(input);
-
         JsonParser jsonParser = new JsonParser();
         List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
 
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = (ObjectNode) mapper.readTree(input);
-        createSimpleHeaders(node,"");
+        createHeaderContainerForEachSimpleAttribute(node,"", "", "");
+        DocumentContext ctx = JsonPath.parse(input);
+        //ctx.renameKey(".reservations[0].customers[0]", "id", "reservations.customers.name");
+        for(HeaderContainer header : headersContainer){
+            ctx.renameKey(header.jsonPath,header.oldAttributeName,header.newAttributeName);
+        }
+        //createSimpleHeaders(node,"");
         //String pretty = node.toString();
         //createHeaders(node,"");
-        String nodeString = node.toString();
+         String nodeString = node.toString();
         createHeadersContainer(node, "", "");
         String content = FileUtils.readFileToString(new File("C:\\Users\\Tomek\\Desktop\\test\\json\\dwaEleZagn\\dwaEleZagn.json"));
         DocumentContext jsonContext = JsonPath.parse(content);
@@ -232,6 +237,55 @@ public class JsonMain {
         }
     }
 
+/*    static void createHeaderContainerForEachAttribute(JsonNode node, String parentName, String path) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            AtomicInteger counter = new AtomicInteger();
+            objectNode.fields().forEachRemaining(entry -> {
+                String oldName = entry.getKey();
+                String newName = parentName + "." + entry.getKey();
+                HeaderContainer headerContainer = new HeaderContainer(path, oldName, newName);
+                JsonNode n = entry.getValue();
+                if (!n.isArray()) {
+                    headersContainer.add(headerContainer);
+                } else {
+                    String jsonPath = path + "." + entry.getKey() + "[" + counter.getAndIncrement() + "]";
+                    createHeaderContainerForEachAttribute(n, newName, jsonPath);
+                }
+            });
+        } else if (node.isArray()) {
+            ArrayNode arrayNode = (ArrayNode) node;
+            arrayNode.elements().forEachRemaining(item -> createHeaderContainerForEachAttribute(item, parentName, path));
+        }*/
+
+        private static void createHeaderContainerForEachSimpleAttribute(JsonNode node, String jsonPath, String newName, String oldName) {
+            if (node.isObject()) {
+                ObjectNode object = (ObjectNode) node;
+                object
+                        .fields()
+                        .forEachRemaining(
+                                entry -> {
+                                    String val="";
+                                    if(entry.getValue().isArray()){
+                                        val = "."+entry.getKey();
+                                    }
+                                    createHeaderContainerForEachSimpleAttribute(entry.getValue(), jsonPath + val, newName + "." + entry.getKey(), entry.getKey());
+                                });
+            } else if (node.isArray()) {
+                ArrayNode array = (ArrayNode) node;
+                AtomicInteger counter = new AtomicInteger();
+                array
+                        .elements()
+                        .forEachRemaining(
+                                item -> {
+                                    createHeaderContainerForEachSimpleAttribute(item, jsonPath + "[" + counter.getAndIncrement()+"]", newName, oldName);
+                                });
+            } else {
+                headersContainer.add(new HeaderContainer(jsonPath,oldName,newName));
+            }
+        }
+    }
+
 
 /*    static void createHeaders(Map<String, JSONArray> node, String parentName) {
         for(Map.Entry<String, JSONArray> nestedNode : node.entrySet()){
@@ -243,4 +297,4 @@ public class JsonMain {
             });
         }
     }*/
-}
+

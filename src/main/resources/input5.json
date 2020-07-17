@@ -14,17 +14,33 @@
                    "alcohol": "vodka"
                  }
 			   ]
-               
             },
             {
                "id":"28903",
-			   "floor":3
+			   "floor":3,
+               "furnishings":[
+                {
+                  "beds":"king",
+                  "pool": "swimming",
+                  "alcohol": "vodka"
+                }
+              ]
             }
          ],
 		 "customers": [
 			{
 				"id":1,
-				"name": "Jan"
+				"name": "Jan",
+                "addresses": [
+                  {
+                    "city": "Warsaw",
+                    "street": "Kosciuszki"
+                  },
+                  {
+                    "city": "Wroclaw",
+                    "street": "Kollataja"
+                  }
+                ]
 			},
 			{
 				"id":3

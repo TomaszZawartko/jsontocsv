@@ -3,7 +3,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.assertj.core.internal.bytebuddy.dynamic.scaffold.MethodGraph;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -22,7 +21,7 @@ public class JsonParser {
     public List<Map<String, String>> parse(String json, List<ObjectNode> reservations, String startParsingNodeName, List<String> nodesToIgnore) throws IOException {
         JsonWorker worker = new JsonWorker(json);
         String jsonNodePreparedForParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
-        Set<String> headers = worker.createSimpleHeaders();
+        Set<String> headers = worker.createNormalHeaders();
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonNodePreparedForParsing);
@@ -33,8 +32,8 @@ public class JsonParser {
         });
         processRoot(firstLevel, startParsingNodeName);
         addBlankValuesToUnfilledAttributes(headers);
-        List<Map<String, String>> sortedResult = sortByHeaders(headers);
-        return result;
+        return sortByHeaders(headers);
+        //return result;
     }
 
     private void addBlankValuesToUnfilledAttributes(Set<String> headers){

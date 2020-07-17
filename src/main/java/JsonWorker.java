@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 class JsonWorker {
@@ -25,7 +26,7 @@ class JsonWorker {
     private final List<String> jsonPathsToDelete = new LinkedList<>();
     private final Set<HeaderContainer> headersContainer = new LinkedHashSet<>();
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Set<String> simpleHeaders = new LinkedHashSet<>();
+    private final Set<String> normalHeaders = new LinkedHashSet<>();
 
     JsonWorker(JsonNode node) {
         this.root = Objects.requireNonNull(node);
@@ -72,10 +73,11 @@ class JsonWorker {
         }
         this.root = mapper.readTree(jsonContext.jsonString());
         //zmieniamy nazwy atrybutow na root.group1. ... .groupN.attributName
-        Set<HeaderContainer> headersContainer = this.createHeaders(/*startNodeName*/"",/*"." + startNodeName + "[*]"*/"");
+        //Set<HeaderContainer> headersContainer = this.createHeaders(/*startNodeName*/"",/*"." + startNodeName + "[*]"*/"");
+        Set<HeaderContainer> headersContainer = this.createHeaderContainerForEachSimpleAttribute();
         for (HeaderContainer header : headersContainer) {
             try {
-                //jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
+                jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
             } catch(PathNotFoundException ex){
                 //jsonContext.add(header.jsonPath, header.newAttributeName);
             }
@@ -83,16 +85,17 @@ class JsonWorker {
         return jsonContext.jsonString();
     }
 
-    public Set<HeaderContainer> createHeaders(String parentName, String path){
-        createHeadersContainer(root,parentName,path);
-        headersContainer.forEach(header -> header.jsonPath = header.jsonPath + "[*]");
-        headersContainer.forEach(header -> header.jsonPath = header.jsonPath.replaceFirst(Pattern.quote("[*]"), ""));
-        return headersContainer;
+    public Set<String> createNormalHeaders(){
+        createNormalHeaders(root,"");
+        Set<String> editedHeaders = new LinkedHashSet<>();
+        normalHeaders.forEach(header -> editedHeaders.add(header.substring(1)));
+        return editedHeaders;
     }
 
-    public Set<String> createSimpleHeaders(){
-        createSimpleHeaders(root,"");
-        return simpleHeaders;
+    public Set<HeaderContainer> createHeaderContainerForEachSimpleAttribute(){
+        createHeaderContainerForEachSimpleAttribute(root,"","","");
+        headersContainer.forEach(headerContainer -> headerContainer.newAttributeName = headerContainer.newAttributeName.substring(1));
+        return headersContainer;
     }
 
     private void findAllSimpleAttributes(JsonNode node, String nestedElementName) {
@@ -107,6 +110,7 @@ class JsonWorker {
                                 } else {
                                     allSimpleAttributes.put(nestedElementName + "." + entry.getKey(), entry.getValue().asText());
                                 }
+                                allSimpleAttributes.put(entry.getKey(), entry.getValue().asText());
                             }
                         });
     }
@@ -144,42 +148,48 @@ class JsonWorker {
         }
     }
 
-    private void createHeadersContainer(JsonNode node, String parentName, String path) {
+    private void createHeaderContainerForEachSimpleAttribute(JsonNode node, String jsonPath, String newName, String oldName) {
         if (node.isObject()) {
-            ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                String oldName = entry.getKey();
-                String newName = parentName + "." + entry.getKey();
-                HeaderContainer headerContainer = new HeaderContainer(path, oldName, newName);
-                JsonNode n = entry.getValue();
-                if (!n.isArray()) {
-                    headersContainer.add(headerContainer);
-                } else {
-                    String jsonPath = path + "[*]." + entry.getKey();
-                    createHeadersContainer(n, newName, jsonPath);
-                }
-            });
+            ObjectNode object = (ObjectNode) node;
+            object
+                    .fields()
+                    .forEachRemaining(
+                            entry -> {
+                                String val="";
+                                if(entry.getValue().isArray()){
+                                    val = "."+entry.getKey();
+                                }
+                                createHeaderContainerForEachSimpleAttribute(entry.getValue(), jsonPath + val, newName + "." + entry.getKey(), entry.getKey());
+                            });
         } else if (node.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createHeadersContainer(item, parentName, path));
+            ArrayNode array = (ArrayNode) node;
+            AtomicInteger counter = new AtomicInteger();
+            array
+                    .elements()
+                    .forEachRemaining(
+                            item -> {
+                                createHeaderContainerForEachSimpleAttribute(item, jsonPath + "[" + counter.getAndIncrement()+"]", newName, oldName);
+                            });
+        } else {
+            headersContainer.add(new HeaderContainer(jsonPath,oldName,newName));
         }
     }
 
-    private void createSimpleHeaders(JsonNode node, String parentName) {
+    private void createNormalHeaders(JsonNode node, String parentName) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
             objectNode.fields().forEachRemaining(entry -> {
                 String nodeName = parentName + "." + entry.getKey();
                 JsonNode n = entry.getValue();
                 if (!n.isArray()) {
-                    simpleHeaders.add(nodeName);
+                    normalHeaders.add(nodeName);
                 } else {
-                    createSimpleHeaders(n, entry.getKey());
+                    createNormalHeaders(n, nodeName);
                 }
             });
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createSimpleHeaders(item, parentName));
+            arrayNode.elements().forEachRemaining(item -> createNormalHeaders(item, parentName));
         }
     }
 }
