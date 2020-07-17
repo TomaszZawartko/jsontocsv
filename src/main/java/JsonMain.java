@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -30,112 +33,45 @@ public class JsonMain {
     public static void main(String[] args) throws IOException {
         ClassLoader classLoader = new JsonMain().getClass().getClassLoader();
 
-        File input = new File(classLoader.getResource("input4.json").getFile());
+        File input = new File(classLoader.getResource("input6.json").getFile());
         String jsonContent = FileUtils.readFileToString(input);
         JsonParser jsonParser = new JsonParser();
-        List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
-
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = (ObjectNode) mapper.readTree(input);
-        createHeaderContainerForEachSimpleAttribute(node,"", "", "");
-        DocumentContext ctx = JsonPath.parse(input);
-        //ctx.renameKey(".reservations[0].customers[0]", "id", "reservations.customers.name");
-        for(HeaderContainer header : headersContainer){
-            ctx.renameKey(header.jsonPath,header.oldAttributeName,header.newAttributeName);
-        }
-        //createSimpleHeaders(node,"");
-        //String pretty = node.toString();
-        //createHeaders(node,"");
-         String nodeString = node.toString();
-        createHeadersContainer(node, "", "");
-        String content = FileUtils.readFileToString(new File("C:\\Users\\Tomek\\Desktop\\test\\json\\dwaEleZagn\\dwaEleZagn.json"));
-        DocumentContext jsonContext = JsonPath.parse(content);
-        JSONArray dc = JsonPath.parse(content).read(".reservations[*]");
-        String str = dc.toJSONString();
-        JsonNode n = mapper.readTree(str);
-        List<String> nodesToIgnore = new LinkedList<>();
-        nodesToIgnore.add("customers");
-        nodesToIgnore.add("rooms");
-        //for (String nodeToIgnore : nodesToIgnore) {
-            createJsonPathsToDelete(node, nodesToIgnore, "");
-        //}
-
-        Set<String> editedNodeJsonPathToDelete = new LinkedHashSet<>();
-        nodeJsonPathToDelete.forEach(jsonPathToDelete -> {
-                    String editedJsonPathToDelte = jsonPathToDelete.replaceFirst(Pattern.quote("[*]"), "");
-                    editedNodeJsonPathToDelete.add(editedJsonPathToDelte);
-                }
-        );
-        for (String jsonPathToDelete : editedNodeJsonPathToDelete) {
-            jsonContext.delete(jsonPathToDelete);
-        }
-
-        headersContainer.forEach(header -> header.jsonPath = header.jsonPath + "[*]");
-        headersContainer.forEach(header -> header.jsonPath = header.jsonPath.replaceFirst(Pattern.quote("[*]"), ""));
-
-        for (HeaderContainer header : headersContainer) {
-            jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
-        }
-
-        String s = jsonContext.jsonString();
-        JsonNode nodeFromJsonPath = mapper.readTree(s);
-        List<ObjectNode> reservations = new LinkedList<>();
-        nodeFromJsonPath.fields().forEachRemaining(entry -> {
-            ArrayNode arrayNode = (ArrayNode) entry.getValue();
-            arrayNode.elements().forEachRemaining(item -> {
-                reservations.add((ObjectNode) item);
-            });
-        });
-        JsonWorker worker = new JsonWorker(nodeFromJsonPath);
-        JsonParser parser = new JsonParser();
-       // List<Map<String, String>> afterParsing = parser.parse(reservations,"reservations", new ArrayList<>());
-
-        //jsonContext.delete("$.reservations[*].customers");
-
-        //jsonContext.renameKey(".reservations[*]", "id", "reservations.id");
-        //jsonContext.renameKey(".reservations[*].rooms[*]", "id", "reservations.rooms.id");
-        //jsonContext.renameKey(".reservations[*].customers[*]", "cust_id", "reservations.rooms.cust_id");
-
-        List<String> paths = Arrays.asList("$.reservations[*].customers[*].childrens", "$.reservations[*].rooms");
-        for (String p : paths) {
-            jsonContext.delete(p);
-        }
-
-        Map<String, JSONArray> json = jsonContext.json();
-        //jsonContext.renameKey("$.reservations[*]","id","reservations.id");
-
-        System.out.println(jsonContext.jsonString());
-
-
-        List<ObjectNode> allElementsFromFirstLevel = new LinkedList<>();
-        node.fields().forEachRemaining(entry -> {
-            ArrayNode arrayNode = (ArrayNode) entry.getValue();
-            arrayNode.elements().forEachRemaining(item -> {
-                allElementsFromFirstLevel.add((ObjectNode) item);
-            });
-        });
-
-      //  JsonParser parser = new JsonParser();
-        //List<Map<String, String>> result = parser.parse(allElementsFromFirstLevel, "reservations", new ArrayList<>());
-
-        //processRoot(allElementsFromFirstLevel, "reservations");
-        System.out.println("OK");
+        //List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
 
         List<String> a = Arrays.asList("a", "b");
         List<String> b = Arrays.asList("c", "d");
         List<String> e = Arrays.asList("e", "f", "g");
         List<List<String>> c = Arrays.asList(a, b, e);
         List<List<String>> d = permutations(c);
+
+        List<String> res = new LinkedList<>();
+        d.stream().forEach(list -> {
+            res.add(list.stream().reduce((s1,s2) -> s1+s2).orElse(""));
+        });
+
         List<String> flat =
                 d.stream()
                         .flatMap(List::stream)
                         .collect(Collectors.toList());
         System.out.println("OK");
+        List<String> result = new LinkedList<>();
+        generatePermutations(c, result, 0, "");
+        System.out.println("OK");
 
     }
 
-    private static <T> List<List<T>> permutations(List<List<T>> collections) {
+    static void generatePermutations(List<List<String>> lists, List<String> result, int depth, String current) {
+        if (depth == lists.size()) {
+            result.add(current);
+            return;
+        }
+
+        for (int i = 0; i < lists.get(depth).size(); i++) {
+            generatePermutations(lists, result, depth + 1, current + lists.get(depth).get(i));
+        }
+    }
+
+    static private <T> List<List<T>> permutations(List<List<T>> collections) {
         if (collections == null || collections.isEmpty()) {
             return Collections.emptyList();
         } else {
@@ -145,7 +81,8 @@ public class JsonMain {
         }
     }
 
-    private static <T> void permutationsImpl(List<List<T>> ori, List<List<T>> res, int d, List<T> current) {
+    //  /** Recursive implementation for {@link #permutations(List, Collection)} */
+    static private <T> void permutationsImpl(List<List<T>> ori, Collection<List<T>> res, int d, List<T> current) {
         // if depth equals number of original collections, final reached, add and return
         if (d == ori.size()) {
             res.add(current);
@@ -161,140 +98,8 @@ public class JsonMain {
         }
     }
 
-    static void createJsonPathsToDelete(JsonNode node, List<String> nodeNameToDelete, String path) {
-        if (node.isObject()) {
-            ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                JsonNode n = entry.getValue();
-                if (n.isArray()) {
-                    String jsonPath = path + "[*]." + entry.getKey();
-                    if (/*entry.getKey().equals(nodeNameToDelete)*/nodeNameToDelete.contains(entry.getKey())) {
-                        nodeJsonPathToDelete.add(jsonPath);
-                    }
-                    createJsonPathsToDelete(n, nodeNameToDelete, jsonPath);
-                }
-            });
-        } else if (node.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createJsonPathsToDelete(item, nodeNameToDelete, path));
-        }
+    static private <T> T redu(List<T> list, BinaryOperator<T> f){
+        return list.stream().reduce(f).orElse(null);
     }
-
-    static void createHeadersContainer(JsonNode node, String parentName, String path) {
-        if (node.isObject()) {
-            ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                String oldName = entry.getKey();
-                String newName = parentName + "." + entry.getKey();
-                HeaderContainer headerContainer = new HeaderContainer(path, oldName, newName);
-                JsonNode n = entry.getValue();
-                if (!n.isArray()) {
-                    headersContainer.add(headerContainer);
-                } else {
-                    String jsonPath = path + "[*]." + entry.getKey();
-                    createHeadersContainer(n, newName, jsonPath);
-                }
-            });
-        } else if (node.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createHeadersContainer(item, parentName, path));
-        }
-    }
-
-    static void createHeaders(JsonNode node, String parentName) {
-        if (node.isObject()) {
-            ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                String nodeName = parentName + "." + entry.getKey();
-                JsonNode n = entry.getValue();
-                if (!n.isArray()) {
-                    headers.add(nodeName);
-                } else {
-                    createHeaders(n, nodeName);
-                }
-            });
-        } else if (node.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName));
-        }
-    }
-
-    static void createSimpleHeaders(JsonNode node, String parentName) {
-        if (node.isObject()) {
-            ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                String nodeName = parentName + "." + entry.getKey();
-                JsonNode n = entry.getValue();
-                if (!n.isArray()) {
-                    headers.add(nodeName);
-                } else {
-                    createSimpleHeaders(n, entry.getKey());
-                }
-            });
-        } else if (node.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createSimpleHeaders(item, parentName));
-        }
-    }
-
-/*    static void createHeaderContainerForEachAttribute(JsonNode node, String parentName, String path) {
-        if (node.isObject()) {
-            ObjectNode objectNode = (ObjectNode) node;
-            AtomicInteger counter = new AtomicInteger();
-            objectNode.fields().forEachRemaining(entry -> {
-                String oldName = entry.getKey();
-                String newName = parentName + "." + entry.getKey();
-                HeaderContainer headerContainer = new HeaderContainer(path, oldName, newName);
-                JsonNode n = entry.getValue();
-                if (!n.isArray()) {
-                    headersContainer.add(headerContainer);
-                } else {
-                    String jsonPath = path + "." + entry.getKey() + "[" + counter.getAndIncrement() + "]";
-                    createHeaderContainerForEachAttribute(n, newName, jsonPath);
-                }
-            });
-        } else if (node.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createHeaderContainerForEachAttribute(item, parentName, path));
-        }*/
-
-        private static void createHeaderContainerForEachSimpleAttribute(JsonNode node, String jsonPath, String newName, String oldName) {
-            if (node.isObject()) {
-                ObjectNode object = (ObjectNode) node;
-                object
-                        .fields()
-                        .forEachRemaining(
-                                entry -> {
-                                    String val="";
-                                    if(entry.getValue().isArray()){
-                                        val = "."+entry.getKey();
-                                    }
-                                    createHeaderContainerForEachSimpleAttribute(entry.getValue(), jsonPath + val, newName + "." + entry.getKey(), entry.getKey());
-                                });
-            } else if (node.isArray()) {
-                ArrayNode array = (ArrayNode) node;
-                AtomicInteger counter = new AtomicInteger();
-                array
-                        .elements()
-                        .forEachRemaining(
-                                item -> {
-                                    createHeaderContainerForEachSimpleAttribute(item, jsonPath + "[" + counter.getAndIncrement()+"]", newName, oldName);
-                                });
-            } else {
-                headersContainer.add(new HeaderContainer(jsonPath,oldName,newName));
-            }
-        }
-    }
-
-
-/*    static void createHeaders(Map<String, JSONArray> node, String parentName) {
-        for(Map.Entry<String, JSONArray> nestedNode : node.entrySet()){
-            String name = nestedNode.getKey();
-            JSONArray array = nestedNode.getValue();
-            headers.add(parentName + "." +name);
-            array.forEach(x -> {
-                createHeaders((Map<String, JSONArray>)x,parentName + "." +name);
-            });
-        }
-    }*/
+}
 

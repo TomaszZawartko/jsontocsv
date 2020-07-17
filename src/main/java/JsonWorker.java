@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
 import net.minidev.json.JSONArray;
 
 import java.util.LinkedHashMap;
@@ -36,25 +35,14 @@ class JsonWorker {
         this.root = mapper.readTree(content);
     }
 
-    public Map<String, String> findAllSimpleAttributes(String parentName) {
-        findAllSimpleAttributes(root, parentName);
+    public Map<String, String> findAllSimpleAttributes() {
+        findAllSimpleAttributes(root);
         return allSimpleAttributes;
     }
 
     public Map<String, ArrayNode> findAllNestedElements() {
         findAllNestedElements(root);
         return allNestedElements;
-    }
-
-    public List<String> createListOfJsonPathsToDelete(List<String> nodesToIgnore){
-        createJsonPathsToDelete(root, nodesToIgnore,"");
-        List<String> editedNodeJsonPathToDelete = new LinkedList<>();
-        jsonPathsToDelete.forEach(jsonPathToDelete -> {
-                    String editedJsonPathToDelete = jsonPathToDelete.replaceFirst(Pattern.quote("[*]"), "");
-                    editedNodeJsonPathToDelete.add(editedJsonPathToDelete);
-                }
-        );
-        return editedNodeJsonPathToDelete;
     }
 
     public String prepareJsonBeforeParsing(List<String> nodesToIgnore, String startNodeName) throws JsonProcessingException {
@@ -76,11 +64,7 @@ class JsonWorker {
         //Set<HeaderContainer> headersContainer = this.createHeaders(/*startNodeName*/"",/*"." + startNodeName + "[*]"*/"");
         Set<HeaderContainer> headersContainer = this.createHeaderContainerForEachSimpleAttribute();
         for (HeaderContainer header : headersContainer) {
-            try {
-                jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
-            } catch(PathNotFoundException ex){
-                //jsonContext.add(header.jsonPath, header.newAttributeName);
-            }
+            jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
         }
         return jsonContext.jsonString();
     }
@@ -92,24 +76,29 @@ class JsonWorker {
         return editedHeaders;
     }
 
-    public Set<HeaderContainer> createHeaderContainerForEachSimpleAttribute(){
+    private List<String> createListOfJsonPathsToDelete(List<String> nodesToIgnore){
+        createJsonPathsToDelete(root, nodesToIgnore,"");
+        List<String> editedNodeJsonPathToDelete = new LinkedList<>();
+        jsonPathsToDelete.forEach(jsonPathToDelete -> {
+                    String editedJsonPathToDelete = jsonPathToDelete.replaceFirst(Pattern.quote("[*]"), "");
+                    editedNodeJsonPathToDelete.add(editedJsonPathToDelete);
+                }
+        );
+        return editedNodeJsonPathToDelete;
+    }
+
+    private Set<HeaderContainer> createHeaderContainerForEachSimpleAttribute(){
         createHeaderContainerForEachSimpleAttribute(root,"","","");
         headersContainer.forEach(headerContainer -> headerContainer.newAttributeName = headerContainer.newAttributeName.substring(1));
         return headersContainer;
     }
 
-    private void findAllSimpleAttributes(JsonNode node, String nestedElementName) {
+    private void findAllSimpleAttributes(JsonNode node) {
         ObjectNode object = (ObjectNode) node;
         object.fields()
                 .forEachRemaining(
                         entry -> {
                             if (!entry.getValue().isArray()) {
-                                String attributeName = entry.getKey();
-                                if (attributeName.contains(".")) {
-                                    allSimpleAttributes.put(attributeName, entry.getValue().asText());
-                                } else {
-                                    allSimpleAttributes.put(nestedElementName + "." + entry.getKey(), entry.getValue().asText());
-                                }
                                 allSimpleAttributes.put(entry.getKey(), entry.getValue().asText());
                             }
                         });
