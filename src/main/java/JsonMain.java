@@ -36,7 +36,7 @@ public class JsonMain {
         File input = new File(classLoader.getResource("input6.json").getFile());
         String jsonContent = FileUtils.readFileToString(input);
         JsonParser jsonParser = new JsonParser();
-        //List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
+        List<Map<String, String>> newres = jsonParser.parse(jsonContent,null,"reservations",/*Arrays.asList("childrens")*/Collections.emptyList());
 
         List<String> a = Arrays.asList("a", "b");
         List<String> b = Arrays.asList("c", "d");

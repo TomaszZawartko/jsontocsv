@@ -63,36 +63,26 @@ public class JsonParser {
             Map<String, ArrayNode> allNestedElementsFromReservation = jsonWorker.findAllNestedElements();
             if(allNestedElementsFromReservation.isEmpty()){
                 result.add(allSimpleAttributesFromReservation);
+                continue;
             }
             List<ObjectNode> nestedElements = mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation,allNestedElementsFromReservation);
 
-            //permutujemy kazdy element zagniezdzony ("kazdy z kazdym")
-            List<ObjectNode> permutatedNestedElements = new LinkedList<>();
-            if(nestedElements.isEmpty()){
-                continue;
-            }
-            Map<JsonNode, List<ObjectNode>> nestedElementsGroupedByGroupName = nestedElements.stream().collect(Collectors.groupingBy(x -> x.findValue("group")));//grupujemy obiekty wzgledem przynaleznosci do wezla
+            Map<JsonNode, List<ObjectNode>> nestedElementsGroupedByGroupName =
+                    nestedElements
+                            .stream()
+                            .collect(Collectors.groupingBy(x -> x.findValue("group")));//grupujemy obiekty wzgledem przynaleznosci do wezla
             List<List<ObjectNode>> listOfGroupedNestedNodes = new LinkedList<>();
             for(Map.Entry<JsonNode, List<ObjectNode>> oneGroup : nestedElementsGroupedByGroupName.entrySet()){
-                String groupName = oneGroup.getKey().asText();
                 List<ObjectNode> groupValues = oneGroup.getValue();
                 for(ObjectNode node : groupValues){
                     node.remove("group");
                 }
                 listOfGroupedNestedNodes.add(groupValues);
             }
+
             List<List<ObjectNode>> permutatedNestedGroups = permutations(listOfGroupedNestedNodes);
-            List<ObjectNode> permutatedGroups = new LinkedList<>();
-            permutatedNestedGroups.forEach(elementsToBeMerged -> permutatedGroups
-                    .add(elementsToBeMerged
-                            .stream()
-                            .reduce(JsonParser::mergeTwoObjectNode)
-                            .orElse(null)));
-
-
-            //generateAllPermutationsBetweenObjectNodes(listOfGroupedNestedNodes, permutatedGroups, 0, new ObjectNode(new JsonNodeFactory(false)));
-            //koniec permutacji
-            processRoot(permutatedGroups);
+            List<ObjectNode> mergedPermutatedGroups = mergeNestedGroups(permutatedNestedGroups);
+            processRoot(mergedPermutatedGroups);
         }
     }
 
@@ -113,6 +103,16 @@ public class JsonParser {
             });
         }
         return mergedSimpleAttributesWithNestedElements;
+    }
+
+    private List<ObjectNode> mergeNestedGroups(List<List<ObjectNode>> nestedGroups){
+        List<ObjectNode> mergedPermutatedGroups = new LinkedList<>();
+        nestedGroups.forEach(elementsToBeMerged -> mergedPermutatedGroups
+                .add(elementsToBeMerged
+                        .stream()
+                        .reduce(JsonParser::mergeTwoObjectNode)
+                        .orElse(null)));
+        return mergedPermutatedGroups;
     }
 
     private <T> List<List<T>> permutations(List<List<T>> collections) {
