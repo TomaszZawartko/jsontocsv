@@ -1,7 +1,5 @@
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
@@ -12,7 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class JsonParser {
 
@@ -57,39 +54,25 @@ public class JsonParser {
 
     private void processRoot(List<ObjectNode> reservations) {
         for (ObjectNode reservation : reservations) {
-
             JsonWorker jsonWorker = new JsonWorker(reservation);
             Map<String, String> allSimpleAttributesFromReservation = jsonWorker.findAllSimpleAttributes();
             Map<String, ArrayNode> allNestedElementsFromReservation = jsonWorker.findAllNestedElements();
             if(allNestedElementsFromReservation.isEmpty()){
                 result.add(allSimpleAttributesFromReservation);
-                continue;
+            }else {
+                List<List<ObjectNode>> nestedElementsMergedWithSimpleAttributesGrouped =
+                        mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation, allNestedElementsFromReservation);
+                List<List<ObjectNode>> permutatedNestedGroups = permutations(nestedElementsMergedWithSimpleAttributesGrouped);
+                List<ObjectNode> mergedPermutatedGroups = mergeNestedGroups(permutatedNestedGroups);
+                processRoot(mergedPermutatedGroups);
             }
-            List<ObjectNode> nestedElements = mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation,allNestedElementsFromReservation);
-
-            Map<JsonNode, List<ObjectNode>> nestedElementsGroupedByGroupName =
-                    nestedElements
-                            .stream()
-                            .collect(Collectors.groupingBy(x -> x.findValue("group")));//grupujemy obiekty wzgledem przynaleznosci do wezla
-            List<List<ObjectNode>> listOfGroupedNestedNodes = new LinkedList<>();
-            for(Map.Entry<JsonNode, List<ObjectNode>> oneGroup : nestedElementsGroupedByGroupName.entrySet()){
-                List<ObjectNode> groupValues = oneGroup.getValue();
-                for(ObjectNode node : groupValues){
-                    node.remove("group");
-                }
-                listOfGroupedNestedNodes.add(groupValues);
-            }
-
-            List<List<ObjectNode>> permutatedNestedGroups = permutations(listOfGroupedNestedNodes);
-            List<ObjectNode> mergedPermutatedGroups = mergeNestedGroups(permutatedNestedGroups);
-            processRoot(mergedPermutatedGroups);
         }
     }
 
-    private List<ObjectNode> mergeSimpleAttributesWithNestedElementsFromTheSameLevel(Map<String, String> allSimpleAttributes, Map<String, ArrayNode> allNestedElements) {
-        List<ObjectNode> mergedSimpleAttributesWithNestedElements = new LinkedList<>();
+    private List<List<ObjectNode>> mergeSimpleAttributesWithNestedElementsFromTheSameLevel(Map<String, String> allSimpleAttributes, Map<String, ArrayNode> allNestedElements) {
+        List<List<ObjectNode>> mergedSimpleAttributesWithNestedElements = new LinkedList<>();
         for (Map.Entry<String, ArrayNode> entry : allNestedElements.entrySet()) {
-            String nestedElementName = entry.getKey();
+            List<ObjectNode> mergedSimpleAttributesWithNestedElement = new LinkedList<>();
             ArrayNode nestedElementValues = entry.getValue();
             nestedElementValues.elements().forEachRemaining(item -> {
                 if (item.isObject()) {
@@ -97,10 +80,10 @@ public class JsonParser {
                     for (Map.Entry<String, String> reservationSimpleAttributes : allSimpleAttributes.entrySet()) {
                         nestedElement.put(reservationSimpleAttributes.getKey(), reservationSimpleAttributes.getValue());
                     }
-                    nestedElement.put("group", nestedElementName);
-                    mergedSimpleAttributesWithNestedElements.add(nestedElement);
+                    mergedSimpleAttributesWithNestedElement.add(nestedElement);
                 }
             });
+            mergedSimpleAttributesWithNestedElements.add(mergedSimpleAttributesWithNestedElement);
         }
         return mergedSimpleAttributesWithNestedElements;
     }
@@ -141,47 +124,9 @@ public class JsonParser {
         }
     }
 
-
-/*    private void generateAllPermutationsBetweenObjectNodes(List<List<ObjectNode>> listsOfObjectNodes, List<ObjectNode> result, int depth, ObjectNode current) {
-        if (depth == listsOfObjectNodes.size()) {
-            result.add(current);
-            return;
-        }
-
-        for (int i = 0; i < listsOfObjectNodes.get(depth).size(); i++) {
-            generateAllPermutationsBetweenObjectNodes(listsOfObjectNodes, result, depth + 1, mergeTwoObjectNode(current, listsOfObjectNodes.get(depth).get(i)));
-        }
-    }*/
-
     static private ObjectNode mergeTwoObjectNode(ObjectNode objectNode1, ObjectNode objectNode2){
         ObjectNode mergedObjectNode = objectNode1.deepCopy();
         mergedObjectNode.setAll(objectNode2);
         return mergedObjectNode;
     }
-
-/*    static private <T> List<List<T>> permutations(List<List<T>> collections) {
-        if (collections == null || collections.isEmpty()) {
-            return Collections.emptyList();
-        } else {
-            List<List<T>> res = new LinkedList<>();
-            permutationsImpl(collections, res, 0, new LinkedList<T>());
-            return res;
-        }
-    }
-
-    static private <T> void permutationsImpl(List<List<T>> ori, Collection<List<T>> res, int d, List<T> current) {
-        // if depth equals number of original collections, final reached, add and return
-        if (d == ori.size()) {
-            res.add(current);
-            return;
-        }
-
-        // iterate from current collection and copy 'current' element N times, one for each element
-        Collection<T> currentCollection = ori.get(d);
-        for (T element : currentCollection) {
-            List<T> copy = new LinkedList<>(current);
-            copy.add(element);
-            permutationsImpl(ori, res, d + 1, copy);
-        }
-    }*/
 }
