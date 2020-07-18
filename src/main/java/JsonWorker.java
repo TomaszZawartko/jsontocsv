@@ -57,8 +57,8 @@ class JsonWorker {
         return jsonContext.jsonString();
     }
 
-    public Set<String> createHeaders(){
-        createHeaders(root,"");
+    public Set<String> createHeaders(String startParsingNodeName){
+        createHeaders(root,"", startParsingNodeName);
         return headers;
     }
 
@@ -119,19 +119,23 @@ class JsonWorker {
         }
     }
 
-    private void createHeaders(JsonNode node, String parentName) {
+    private void createHeaders(JsonNode node, String parentName, String startParsingNodeName) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
             objectNode.fields().forEachRemaining(entry -> {
                 JsonNode n = entry.getValue();
                 if (!n.isArray()) {
-                    headers.add(parentName+ "."+entry.getKey());
+                    if(!parentName.equals(startParsingNodeName)) {
+                        headers.add(parentName + "." + entry.getKey());
+                    }else {
+                        headers.add(entry.getKey());
+                    }
                 }
-                createHeaders(n,entry.getKey());
+                createHeaders(n,entry.getKey(), startParsingNodeName);
             });
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName));
+            arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName,startParsingNodeName));
         }
     }
 }

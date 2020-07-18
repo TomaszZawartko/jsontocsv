@@ -19,7 +19,7 @@ public class JsonMain {
     public static void main(String[] args) throws IOException {
         ClassLoader classLoader = new JsonMain().getClass().getClassLoader();
 
-        File input = new File(classLoader.getResource("input4.json").getFile());
+        File input = new File(classLoader.getResource("input7.json").getFile());
         String jsonContent = FileUtils.readFileToString(input);
         JsonParser jsonParser = new JsonParser();
         long start = System.currentTimeMillis();

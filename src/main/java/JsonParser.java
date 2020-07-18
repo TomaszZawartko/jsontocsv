@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -21,44 +20,28 @@ public class JsonParser {
         JsonWorker worker = new JsonWorker(json);
         String jsonPreparedToParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
 
-        Set<String> hed = worker.createHeaders();
-
+        JsonWorker workerAfterPrepared = new JsonWorker(jsonPreparedToParsing);
+        Set<String> headers = workerAfterPrepared.createHeaders(startParsingNodeName);
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonPreparedToParsing);
         ArrayNode array = (ArrayNode)jsonAfterPreparing.get(startParsingNodeName);
         List<ObjectNode> firstLevel = new LinkedList<>();
-        array.elements().forEachRemaining(element -> {
-            firstLevel.add((ObjectNode)element);
-        });
+        array.elements().forEachRemaining(element -> firstLevel.add((ObjectNode)element));
         processRoot(firstLevel);
-        Set<String> headers = createHeaders(result);
         addBlankValuesToUnfilledAttributes(headers);
-        sortByHeaders(headers);
-        return result;
+        return sortByHeaders(headers);
     }
 
     private void addBlankValuesToUnfilledAttributes(Set<String> headers){
-        result.forEach(row -> {
-            headers.forEach(header -> {
-                row.putIfAbsent(header, "");
-            });
-        });
-    }
-
-    private Set<String> createHeaders(List<Map<String, String>> result){
-        LinkedHashSet<String> headers = new LinkedHashSet<>();
-        result.forEach(row -> headers.addAll(row.keySet()));
-        return headers;
+        result.forEach(row -> headers.forEach(header -> row.putIfAbsent(header, "")));
     }
 
     private List<Map<String, String>> sortByHeaders(Set<String> headers){
         List<Map<String, String>> sortedResult = new LinkedList<>();
         result.forEach(row -> {
             Map<String, String> sortedRow = new LinkedHashMap<>();
-            headers.forEach(header -> {
-                sortedRow.put(header, row.get(header));
-            });
+            headers.forEach(header -> sortedRow.put(header, row.get(header)));
             sortedResult.add(sortedRow);
         });
         return sortedResult;
@@ -75,9 +58,9 @@ public class JsonParser {
             }else {
                 List<List<ObjectNode>> nestedElementsMergedWithSimpleAttributesGrouped =
                         mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation, allRenamedNestedElementsFromReservation);
-                List<List<ObjectNode>> permutatedNestedGroups = permutations(nestedElementsMergedWithSimpleAttributesGrouped);
-                List<ObjectNode> mergedPermutatedGroups = mergeNestedGroups(permutatedNestedGroups);
-                processRoot(mergedPermutatedGroups);
+                List<List<ObjectNode>> permutedNestedGroups = permutations(nestedElementsMergedWithSimpleAttributesGrouped);
+                List<ObjectNode> mergedPermutedGroups = mergeNestedGroups(permutedNestedGroups);
+                processRoot(mergedPermutedGroups);
             }
         }
     }
@@ -141,7 +124,7 @@ public class JsonParser {
             return Collections.emptyList();
         } else {
             List<List<T>> res = new LinkedList<>();
-            permutationsImpl(collections, res, 0, new LinkedList<T>());
+            permutationsImpl(collections, res, 0, new LinkedList<>());
             return res;
         }
     }
