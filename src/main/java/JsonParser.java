@@ -1,11 +1,13 @@
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +20,9 @@ public class JsonParser {
     public List<Map<String, String>> parse(String json, String startParsingNodeName, List<String> nodesToIgnore) throws IOException {
         JsonWorker worker = new JsonWorker(json);
         String jsonPreparedToParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
-        Set<String> headers = worker.createNormalHeaders();
+
+        Set<String> hed = worker.createHeaders();
+
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonPreparedToParsing);
@@ -28,8 +32,10 @@ public class JsonParser {
             firstLevel.add((ObjectNode)element);
         });
         processRoot(firstLevel);
+        Set<String> headers = createHeaders(result);
         addBlankValuesToUnfilledAttributes(headers);
-        return sortByHeaders(headers);
+        sortByHeaders(headers);
+        return result;
     }
 
     private void addBlankValuesToUnfilledAttributes(Set<String> headers){
@@ -38,6 +44,12 @@ public class JsonParser {
                 row.putIfAbsent(header, "");
             });
         });
+    }
+
+    private Set<String> createHeaders(List<Map<String, String>> result){
+        LinkedHashSet<String> headers = new LinkedHashSet<>();
+        result.forEach(row -> headers.addAll(row.keySet()));
+        return headers;
     }
 
     private List<Map<String, String>> sortByHeaders(Set<String> headers){
@@ -57,16 +69,42 @@ public class JsonParser {
             JsonWorker jsonWorker = new JsonWorker(reservation);
             Map<String, String> allSimpleAttributesFromReservation = jsonWorker.findAllSimpleAttributes();
             Map<String, ArrayNode> allNestedElementsFromReservation = jsonWorker.findAllNestedElements();
-            if(allNestedElementsFromReservation.isEmpty()){
+            Map<String, ArrayNode> allRenamedNestedElementsFromReservation = createUniqueAttributesNameForSimpleAttributesInNestedElements(allNestedElementsFromReservation);
+            if(allRenamedNestedElementsFromReservation.isEmpty()){
                 result.add(allSimpleAttributesFromReservation);
             }else {
                 List<List<ObjectNode>> nestedElementsMergedWithSimpleAttributesGrouped =
-                        mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation, allNestedElementsFromReservation);
+                        mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation, allRenamedNestedElementsFromReservation);
                 List<List<ObjectNode>> permutatedNestedGroups = permutations(nestedElementsMergedWithSimpleAttributesGrouped);
                 List<ObjectNode> mergedPermutatedGroups = mergeNestedGroups(permutatedNestedGroups);
                 processRoot(mergedPermutatedGroups);
             }
         }
+    }
+
+    private Map<String, ArrayNode> createUniqueAttributesNameForSimpleAttributesInNestedElements(Map<String, ArrayNode> nestedElements) {
+        Map<String, ArrayNode> renamedAttributesFromNestedElement = new LinkedHashMap<>();
+        for(Map.Entry<String, ArrayNode> nestedElement : nestedElements.entrySet()){
+            String nestedElementName = nestedElement.getKey();
+            ArrayNode arrayNodeAttributes = nestedElement.getValue();
+            ArrayNode newAttributes = new ArrayNode(new JsonNodeFactory(false));
+            arrayNodeAttributes.elements().forEachRemaining(attributes -> {
+                ObjectNode node = (ObjectNode)attributes;
+                ObjectNode newNode = new ObjectNode(new JsonNodeFactory(false));
+                node.fields().forEachRemaining(attr -> {
+                    String attrName = attr.getKey();
+                    if(attr.getValue().isArray()){
+                        newNode.set(attrName, attr.getValue());
+                    }else {
+                        String attrValue = attr.getValue().asText();
+                        newNode.put(nestedElementName + "." + attrName, attrValue);
+                    }
+                });
+                newAttributes.add(newNode);
+            });
+            renamedAttributesFromNestedElement.put(nestedElementName,newAttributes);
+        }
+        return renamedAttributesFromNestedElement;
     }
 
     private List<List<ObjectNode>> mergeSimpleAttributesWithNestedElementsFromTheSameLevel(Map<String, String> allSimpleAttributes, Map<String, ArrayNode> allNestedElements) {

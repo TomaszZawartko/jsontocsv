@@ -1,3 +1,6 @@
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -12,15 +15,11 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 
 public class JsonMain {
-    static Set<String> headers = new LinkedHashSet<>();
-    static Set<HeaderContainer> headersContainer = new LinkedHashSet<>();
-    static Set<String> nodeJsonPathToDelete = new LinkedHashSet<>();
-    static List<Map<String, String>> result = new LinkedList<>();
 
     public static void main(String[] args) throws IOException {
         ClassLoader classLoader = new JsonMain().getClass().getClassLoader();
 
-        File input = new File(classLoader.getResource("input2.json").getFile());
+        File input = new File(classLoader.getResource("input4.json").getFile());
         String jsonContent = FileUtils.readFileToString(input);
         JsonParser jsonParser = new JsonParser();
         long start = System.currentTimeMillis();

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidModificationException;
 import com.jayway.jsonpath.JsonPath;
 import net.minidev.json.JSONArray;
 
@@ -15,24 +14,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 class JsonWorker {
 
-    private JsonNode root;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final JsonNode root;
     private final Map<String, String> allSimpleAttributes = new LinkedHashMap<>();
     private final Map<String, ArrayNode> allNestedElements = new LinkedHashMap<>();
     private final List<String> jsonPathsToDelete = new LinkedList<>();
-    private final Set<HeaderContainer> headersContainer = new LinkedHashSet<>();
-    private final Set<String> normalHeaders = new LinkedHashSet<>();
+    private final Set<String> headers = new LinkedHashSet<>();
 
     JsonWorker(JsonNode node) {
         this.root = Objects.requireNonNull(node);
     }
 
     JsonWorker(String content) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
         this.root = mapper.readTree(content);
     }
 
@@ -46,9 +43,7 @@ class JsonWorker {
         return allNestedElements;
     }
 
-    public String prepareJsonBeforeParsing(List<String> nodesToIgnore, String startNodeName) throws JsonProcessingException {
-
-        //znajdujemy wezel do parsowania
+    public String prepareJsonBeforeParsing(List<String> nodesToIgnore, String startNodeName) {
         JSONArray jsonStringForPreparingToParsing = JsonPath.parse(root.toString()).read("." + startNodeName + "[*]");
         DocumentContext jsonContext = JsonPath.parse(jsonStringForPreparingToParsing);
         String jsonString = jsonContext.jsonString();
@@ -56,45 +51,15 @@ class JsonWorker {
         List<String> jsonPathsToRemove = this.createListOfJsonPathsToDelete(nodesToIgnore);
         jsonContext = JsonPath.parse(jsonString);
 
-        //usuwamy wezly
         for (String jsonPathToDelete : jsonPathsToRemove) {
             jsonContext.delete(jsonPathToDelete);
         }
-        this.root = mapper.readTree(jsonContext.jsonString());
-        //zmieniamy nazwy atrybutow na root.group1. ... .groupN.attributName
-        //Set<HeaderContainer> headersContainer = this.createHeaders(/*startNodeName*/"",/*"." + startNodeName + "[*]"*/"");
-        Set<HeaderContainer> headersContainer = this.createHeaderContainerForEachSimpleAttribute();
-        long start = System.currentTimeMillis();
-        for (HeaderContainer header : headersContainer) {
-            //jsonContext.renameKey(header.jsonPath, header.oldAttributeName, header.newAttributeName);
-        }
-        long end = System.currentTimeMillis() - start;
-        System.out.println(end/1000L);
         return jsonContext.jsonString();
     }
 
-    public Set<String> createNormalHeaders(){
-        createNormalHeaders(root,"");
-        Set<String> editedHeaders = new LinkedHashSet<>();
-        normalHeaders.forEach(header -> editedHeaders.add(header.substring(1)));
-        return editedHeaders;
-    }
-
-    private List<String> createListOfJsonPathsToDelete(List<String> nodesToIgnore){
-        createJsonPathsToDelete(root, nodesToIgnore,"");
-        List<String> editedNodeJsonPathToDelete = new LinkedList<>();
-        jsonPathsToDelete.forEach(jsonPathToDelete -> {
-                    String editedJsonPathToDelete = jsonPathToDelete.replaceFirst(Pattern.quote("[*]"), "");
-                    editedNodeJsonPathToDelete.add(editedJsonPathToDelete);
-                }
-        );
-        return editedNodeJsonPathToDelete;
-    }
-
-    private Set<HeaderContainer> createHeaderContainerForEachSimpleAttribute(){
-        createHeaderContainerForEachSimpleAttribute(root,"","","");
-        headersContainer.forEach(headerContainer -> headerContainer.newAttributeName = headerContainer.newAttributeName.substring(1));
-        return headersContainer;
+    public Set<String> createHeaders(){
+        createHeaders(root,"");
+        return headers;
     }
 
     private void findAllSimpleAttributes(JsonNode node) {
@@ -122,6 +87,19 @@ class JsonWorker {
         }
     }
 
+
+
+    private List<String> createListOfJsonPathsToDelete(List<String> nodesToIgnore){
+        createJsonPathsToDelete(root, nodesToIgnore,"");
+        List<String> editedNodeJsonPathToDelete = new LinkedList<>();
+        jsonPathsToDelete.forEach(jsonPathToDelete -> {
+                    String editedJsonPathToDelete = jsonPathToDelete.replaceFirst(Pattern.quote("[*]"), "");
+                    editedNodeJsonPathToDelete.add(editedJsonPathToDelete);
+                }
+        );
+        return editedNodeJsonPathToDelete;
+    }
+
     private void createJsonPathsToDelete(JsonNode node, List<String> nodeNameToDelete, String path) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
@@ -141,48 +119,19 @@ class JsonWorker {
         }
     }
 
-    private void createHeaderContainerForEachSimpleAttribute(JsonNode node, String jsonPath, String newName, String oldName) {
-        if (node.isObject()) {
-            ObjectNode object = (ObjectNode) node;
-            object
-                    .fields()
-                    .forEachRemaining(
-                            entry -> {
-                                String val="";
-                                if(entry.getValue().isArray()){
-                                    val = "."+entry.getKey();
-                                }
-                                createHeaderContainerForEachSimpleAttribute(entry.getValue(), jsonPath + val, newName + "." + entry.getKey(), entry.getKey());
-                            });
-        } else if (node.isArray()) {
-            ArrayNode array = (ArrayNode) node;
-            AtomicInteger counter = new AtomicInteger();
-            array
-                    .elements()
-                    .forEachRemaining(
-                            item -> {
-                                createHeaderContainerForEachSimpleAttribute(item, jsonPath + "[" + counter.getAndIncrement()+"]", newName, oldName);
-                            });
-        } else {
-            headersContainer.add(new HeaderContainer(jsonPath,oldName,newName));
-        }
-    }
-
-    private void createNormalHeaders(JsonNode node, String parentName) {
+    private void createHeaders(JsonNode node, String parentName) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
             objectNode.fields().forEachRemaining(entry -> {
-                String nodeName = parentName + "." + entry.getKey();
                 JsonNode n = entry.getValue();
                 if (!n.isArray()) {
-                    normalHeaders.add(nodeName);
-                } else {
-                    createNormalHeaders(n, nodeName);
+                    headers.add(parentName+ "."+entry.getKey());
                 }
+                createHeaders(n,entry.getKey());
             });
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createNormalHeaders(item, parentName));
+            arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName));
         }
     }
 }
