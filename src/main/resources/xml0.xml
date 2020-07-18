@@ -1,0 +1,32 @@
+<reservations>
+	<reservation>
+		<id>1318504</id>
+		<add_date>2020-12-10 12:48:09</add_date>
+		<rooms>
+			<room>
+				<id>28902</id>
+				<floor>2</floor>
+			</room>
+			<room>
+				<id>28903</id>
+				<floor>3</floor>
+			</room>
+		</rooms>
+	</reservation >
+	<reservation>
+		<id>1318501</id>
+		<add_date>2021-05-07 07:47:05</add_date>
+		<rooms>
+			<room>
+				<id>5</id>
+				<floor>25</floor>
+			</room>
+			<room>
+				<id>6</id>
+			</room>
+		</rooms>
+	</reservation>
+</reservations>
+
+	
+	 

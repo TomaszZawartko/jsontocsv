@@ -33,6 +33,11 @@ class JsonWorker {
         this.root = mapper.readTree(content);
     }
 
+    public Set<String> createHeaders(final String startParsingNodeName) {
+        createHeaders(root, "", startParsingNodeName);
+        return headers;
+    }
+
     public Map<String, String> findAllSimpleAttributes() {
         findAllSimpleAttributes(root);
         return allSimpleAttributes;
@@ -43,54 +48,47 @@ class JsonWorker {
         return allNestedElements;
     }
 
-    public String prepareJsonBeforeParsing(List<String> nodesToIgnore, String startNodeName) {
-        JSONArray jsonStringForPreparingToParsing = JsonPath.parse(root.toString()).read("." + startNodeName + "[*]");
-        DocumentContext jsonContext = JsonPath.parse(jsonStringForPreparingToParsing);
-        String jsonString = jsonContext.jsonString();
-        jsonString = "{" + startNodeName + ":" + jsonString + "}";
+    public String prepareJsonBeforeParsing(final List<String> nodesToIgnore, final String startNodeName) {
+        JSONArray jsonElementsForPreparingToParsing = JsonPath.parse(root.toString()).read("." + startNodeName + "[*]");
+        DocumentContext foundedJsonContext = JsonPath.parse(jsonElementsForPreparingToParsing);
+        String foundedJsonForPreparingToParsing = foundedJsonContext.jsonString();
+        foundedJsonForPreparingToParsing = "{" + startNodeName + ":" + foundedJsonForPreparingToParsing + "}";
         List<String> jsonPathsToRemove = this.createListOfJsonPathsToDelete(nodesToIgnore);
-        jsonContext = JsonPath.parse(jsonString);
+        foundedJsonContext = JsonPath.parse(foundedJsonForPreparingToParsing);
 
         for (String jsonPathToDelete : jsonPathsToRemove) {
-            jsonContext.delete(jsonPathToDelete);
+            foundedJsonContext.delete(jsonPathToDelete);
         }
-        return jsonContext.jsonString();
+        return foundedJsonContext.jsonString();
     }
 
-    public Set<String> createHeaders(String startParsingNodeName){
-        createHeaders(root,"", startParsingNodeName);
-        return headers;
-    }
-
-    private void findAllSimpleAttributes(JsonNode node) {
+    private void findAllSimpleAttributes(final JsonNode node) {
         ObjectNode object = (ObjectNode) node;
         object.fields()
                 .forEachRemaining(
-                        entry -> {
-                            if (!entry.getValue().isArray()) {
-                                allSimpleAttributes.put(entry.getKey(), entry.getValue().asText());
+                        field -> {
+                            if (!field.getValue().isArray()) {
+                                allSimpleAttributes.put(field.getKey(), field.getValue().asText());
                             }
                         });
     }
 
-    private void findAllNestedElements(JsonNode node) {
+    private void findAllNestedElements(final JsonNode node) {
         if (node.isObject()) {
             ObjectNode object = (ObjectNode) node;
-            object
-                    .fields()
+            object.fields()
                     .forEachRemaining(
-                            entry -> {
-                                if (entry.getValue().isArray()) {
-                                    allNestedElements.put(entry.getKey(), (ArrayNode) entry.getValue());
+                            field -> {
+                                if (field.getValue().isArray()) {
+                                    allNestedElements.put(field.getKey(), (ArrayNode) field.getValue());
                                 }
                             });
         }
     }
 
 
-
-    private List<String> createListOfJsonPathsToDelete(List<String> nodesToIgnore){
-        createJsonPathsToDelete(root, nodesToIgnore,"");
+    private List<String> createListOfJsonPathsToDelete(final List<String> nodesToIgnore) {
+        createJsonPathsToDelete(root, nodesToIgnore, "");
         List<String> editedNodeJsonPathToDelete = new LinkedList<>();
         jsonPathsToDelete.forEach(jsonPathToDelete -> {
                     String editedJsonPathToDelete = jsonPathToDelete.replaceFirst(Pattern.quote("[*]"), "");
@@ -100,17 +98,17 @@ class JsonWorker {
         return editedNodeJsonPathToDelete;
     }
 
-    private void createJsonPathsToDelete(JsonNode node, List<String> nodeNameToDelete, String path) {
+    private void createJsonPathsToDelete(final JsonNode node, final List<String> nodeNameToDelete, final String path) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                JsonNode n = entry.getValue();
-                if (n.isArray()) {
-                    String jsonPath = path + "[*]." + entry.getKey();
-                    if (nodeNameToDelete.contains(entry.getKey())) {
+            objectNode.fields().forEachRemaining(field -> {
+                JsonNode fieldValue = field.getValue();
+                if (fieldValue.isArray()) {
+                    String jsonPath = path + "[*]." + field.getKey();
+                    if (nodeNameToDelete.contains(field.getKey())) {
                         jsonPathsToDelete.add(jsonPath);
                     }
-                    createJsonPathsToDelete(n, nodeNameToDelete, jsonPath);
+                    createJsonPathsToDelete(fieldValue, nodeNameToDelete, jsonPath);
                 }
             });
         } else if (node.isArray()) {
@@ -119,23 +117,23 @@ class JsonWorker {
         }
     }
 
-    private void createHeaders(JsonNode node, String parentName, String startParsingNodeName) {
+    private void createHeaders(final JsonNode node, final String parentName, final String startParsingNodeName) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
-            objectNode.fields().forEachRemaining(entry -> {
-                JsonNode n = entry.getValue();
-                if (!n.isArray()) {
-                    if(!parentName.equals(startParsingNodeName)) {
-                        headers.add(parentName + "." + entry.getKey());
-                    }else {
-                        headers.add(entry.getKey());
+            objectNode.fields().forEachRemaining(field -> {
+                JsonNode fieldValue = field.getValue();
+                if (!fieldValue.isArray()) {
+                    if (!parentName.equals(startParsingNodeName)) {
+                        headers.add(parentName + "." + field.getKey());
+                    } else {
+                        headers.add(field.getKey());
                     }
                 }
-                createHeaders(n,entry.getKey(), startParsingNodeName);
+                createHeaders(fieldValue, field.getKey(), startParsingNodeName);
             });
         } else if (node.isArray()) {
             ArrayNode arrayNode = (ArrayNode) node;
-            arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName,startParsingNodeName));
+            arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName, startParsingNodeName));
         }
     }
 }

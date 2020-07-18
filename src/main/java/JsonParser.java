@@ -24,20 +24,20 @@ public class JsonParser {
         Set<String> headers = workerAfterPrepared.createHeaders(startParsingNodeName);
 
         ObjectMapper mapper = new ObjectMapper();
-        ObjectNode jsonAfterPreparing = (ObjectNode)mapper.readTree(jsonPreparedToParsing);
-        ArrayNode array = (ArrayNode)jsonAfterPreparing.get(startParsingNodeName);
+        ObjectNode jsonAfterPreparing = (ObjectNode) mapper.readTree(jsonPreparedToParsing);
+        ArrayNode array = (ArrayNode) jsonAfterPreparing.get(startParsingNodeName);
         List<ObjectNode> firstLevel = new LinkedList<>();
-        array.elements().forEachRemaining(element -> firstLevel.add((ObjectNode)element));
+        array.elements().forEachRemaining(element -> firstLevel.add((ObjectNode) element));
         processRoot(firstLevel);
         addBlankValuesToUnfilledAttributes(headers);
         return sortByHeaders(headers);
     }
 
-    private void addBlankValuesToUnfilledAttributes(Set<String> headers){
+    private void addBlankValuesToUnfilledAttributes(Set<String> headers) {
         result.forEach(row -> headers.forEach(header -> row.putIfAbsent(header, "")));
     }
 
-    private List<Map<String, String>> sortByHeaders(Set<String> headers){
+    private List<Map<String, String>> sortByHeaders(Set<String> headers) {
         List<Map<String, String>> sortedResult = new LinkedList<>();
         result.forEach(row -> {
             Map<String, String> sortedRow = new LinkedHashMap<>();
@@ -47,18 +47,21 @@ public class JsonParser {
         return sortedResult;
     }
 
-    private void processRoot(List<ObjectNode> reservations) {
-        for (ObjectNode reservation : reservations) {
-            JsonWorker jsonWorker = new JsonWorker(reservation);
-            Map<String, String> allSimpleAttributesFromReservation = jsonWorker.findAllSimpleAttributes();
-            Map<String, ArrayNode> allNestedElementsFromReservation = jsonWorker.findAllNestedElements();
-            Map<String, ArrayNode> allRenamedNestedElementsFromReservation = createUniqueAttributesNameForSimpleAttributesInNestedElements(allNestedElementsFromReservation);
-            if(allRenamedNestedElementsFromReservation.isEmpty()){
-                result.add(allSimpleAttributesFromReservation);
-            }else {
-                List<List<ObjectNode>> nestedElementsMergedWithSimpleAttributesGrouped =
-                        mergeSimpleAttributesWithNestedElementsFromTheSameLevel(allSimpleAttributesFromReservation, allRenamedNestedElementsFromReservation);
-                List<List<ObjectNode>> permutedNestedGroups = permutations(nestedElementsMergedWithSimpleAttributesGrouped);
+    private void processRoot(List<ObjectNode> root) {
+        for (ObjectNode rootElement : root) {
+            JsonWorker jsonWorker = new JsonWorker(rootElement);
+            Map<String, String> allSimpleAttributesFromRootElement = jsonWorker.findAllSimpleAttributes();
+            Map<String, ArrayNode> allNestedElementsFromRootElement = jsonWorker.findAllNestedElements();
+            Map<String, ArrayNode> allNestedElementsFromRootElementWithUniqueSimpleAttributesNames =
+                    createUniqueAttributesNameForSimpleAttributesInNestedElements(allNestedElementsFromRootElement);
+            if (allNestedElementsFromRootElementWithUniqueSimpleAttributesNames.isEmpty()) {
+                result.add(allSimpleAttributesFromRootElement);
+            } else {
+                List<List<ObjectNode>> groupedNestedElementsMergedWithSimpleAttributes =
+                        mergeSimpleAttributesWithNestedElementsFromTheSameLevel(
+                                allSimpleAttributesFromRootElement,
+                                allNestedElementsFromRootElementWithUniqueSimpleAttributesNames);
+                List<List<ObjectNode>> permutedNestedGroups = permutations(groupedNestedElementsMergedWithSimpleAttributes);
                 List<ObjectNode> mergedPermutedGroups = mergeNestedGroups(permutedNestedGroups);
                 processRoot(mergedPermutedGroups);
             }
@@ -67,25 +70,25 @@ public class JsonParser {
 
     private Map<String, ArrayNode> createUniqueAttributesNameForSimpleAttributesInNestedElements(Map<String, ArrayNode> nestedElements) {
         Map<String, ArrayNode> renamedAttributesFromNestedElement = new LinkedHashMap<>();
-        for(Map.Entry<String, ArrayNode> nestedElement : nestedElements.entrySet()){
+        for (Map.Entry<String, ArrayNode> nestedElement : nestedElements.entrySet()) {
             String nestedElementName = nestedElement.getKey();
             ArrayNode arrayNodeAttributes = nestedElement.getValue();
             ArrayNode newAttributes = new ArrayNode(new JsonNodeFactory(false));
             arrayNodeAttributes.elements().forEachRemaining(attributes -> {
-                ObjectNode node = (ObjectNode)attributes;
+                ObjectNode node = (ObjectNode) attributes;
                 ObjectNode newNode = new ObjectNode(new JsonNodeFactory(false));
                 node.fields().forEachRemaining(attr -> {
                     String attrName = attr.getKey();
-                    if(attr.getValue().isArray()){
+                    if (attr.getValue().isArray()) {
                         newNode.set(attrName, attr.getValue());
-                    }else {
+                    } else {
                         String attrValue = attr.getValue().asText();
                         newNode.put(nestedElementName + "." + attrName, attrValue);
                     }
                 });
                 newAttributes.add(newNode);
             });
-            renamedAttributesFromNestedElement.put(nestedElementName,newAttributes);
+            renamedAttributesFromNestedElement.put(nestedElementName, newAttributes);
         }
         return renamedAttributesFromNestedElement;
     }
@@ -109,7 +112,7 @@ public class JsonParser {
         return mergedSimpleAttributesWithNestedElements;
     }
 
-    private List<ObjectNode> mergeNestedGroups(List<List<ObjectNode>> nestedGroups){
+    private List<ObjectNode> mergeNestedGroups(List<List<ObjectNode>> nestedGroups) {
         List<ObjectNode> mergedPermutatedGroups = new LinkedList<>();
         nestedGroups.forEach(elementsToBeMerged -> mergedPermutatedGroups
                 .add(elementsToBeMerged
@@ -145,7 +148,7 @@ public class JsonParser {
         }
     }
 
-    static private ObjectNode mergeTwoObjectNode(ObjectNode objectNode1, ObjectNode objectNode2){
+    static private ObjectNode mergeTwoObjectNode(ObjectNode objectNode1, ObjectNode objectNode2) {
         ObjectNode mergedObjectNode = objectNode1.deepCopy();
         mergedObjectNode.setAll(objectNode2);
         return mergedObjectNode;
