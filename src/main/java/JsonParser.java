@@ -22,15 +22,11 @@ public class JsonParser {
         JsonWorker worker = new JsonWorker(json);
         String jsonPreparedToParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
 
-        JsonWorker workerAfterPrepared = new JsonWorker(jsonPreparedToParsing);
-        //Set<String> headers = workerAfterPrepared.process(startParsingNodeName);/*workerAfterPrepared.createHeaders(startParsingNodeName);*/
-
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonAfterPreparing = (ObjectNode) mapper.readTree(jsonPreparedToParsing);
         ArrayNode array = (ArrayNode) jsonAfterPreparing.get(startParsingNodeName);
         List<ObjectNode> firstLevel = new LinkedList<>();
         array.elements().forEachRemaining(element -> {
-
             if(element.isObject()){
                 firstLevel.add((ObjectNode) element);
             } else if(element.isArray()){
@@ -72,11 +68,11 @@ public class JsonParser {
         for (ObjectNode rootElement : root) {
             JsonWorker jsonWorker = new JsonWorker(rootElement);
             Map<String, String> allSimpleAttributesFromRootElement = jsonWorker.findAllSimpleAttributes();
-            Map<String, /*ArrayNode*/JsonNode> allNestedElementsFromRootElement = jsonWorker.findAllNestedElements();
+            Map<String, JsonNode> allNestedElementsFromRootElement = jsonWorker.findAllNestedElements();
             Map<String, JsonNode> allNestedElementsFromRootElementWithoutNodesToIgnore =
                     removeNodesToIgnore(allNestedElementsFromRootElement, nodesToIgnore);
-            Map<String, /*ArrayNode*/JsonNode> allNestedElementsFromRootElementWithUniqueSimpleAttributesNames =
-                    createUniqueAttributesNameForSimpleAttributesInNestedElements(/*allNestedElementsFromRootElement*/allNestedElementsFromRootElementWithoutNodesToIgnore);
+            Map<String, JsonNode> allNestedElementsFromRootElementWithUniqueSimpleAttributesNames =
+                    createUniqueAttributesNameForSimpleAttributesInNestedElements(allNestedElementsFromRootElementWithoutNodesToIgnore);
             if (allNestedElementsFromRootElementWithUniqueSimpleAttributesNames.isEmpty()) {
                 result.add(allSimpleAttributesFromRootElement);
             } else {
@@ -101,11 +97,11 @@ public class JsonParser {
         return nestedElementsWithoutNodesToIgnore;
     }
 
-    private Map<String, /*ArrayNode*/JsonNode> createUniqueAttributesNameForSimpleAttributesInNestedElements(Map<String, /*ArrayNode*/JsonNode> nestedElements) {
-        Map<String, /*ArrayNode*/JsonNode> renamedAttributesFromNestedElement = new LinkedHashMap<>();
-        for (Map.Entry<String, /*ArrayNode*/JsonNode> nestedElement : nestedElements.entrySet()) {
+    private Map<String, JsonNode> createUniqueAttributesNameForSimpleAttributesInNestedElements(Map<String, JsonNode> nestedElements) {
+        Map<String, JsonNode> renamedAttributesFromNestedElement = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonNode> nestedElement : nestedElements.entrySet()) {
             String nestedElementName = nestedElement.getKey();
-            /*ArrayNode*/JsonNode arrayNodeAttributes = nestedElement.getValue();
+            JsonNode arrayNodeAttributes = nestedElement.getValue();
             ArrayNode newAttributes = new ArrayNode(new JsonNodeFactory(false));
             arrayNodeAttributes.elements().forEachRemaining(attributes -> {
                 if(attributes.isObject()) {
@@ -113,12 +109,6 @@ public class JsonParser {
                     ObjectNode newNode = new ObjectNode(new JsonNodeFactory(false));
                     node.fields().forEachRemaining(attr -> {
                         String attrName = attr.getKey();
-                    /*if (attr.getValue().isArray()) {
-                        newNode.set(attrName, attr.getValue());
-                    } else {
-                        String attrValue = attr.getValue().asText();
-                        newNode.put(nestedElementName + "." + attrName, attrValue);
-                    }*/
                         if (attr.getValue().isValueNode()) {
                             String attrValue = attr.getValue().asText();
                             newNode.put(nestedElementName + "." + attrName, attrValue);
@@ -129,7 +119,7 @@ public class JsonParser {
                     newAttributes.add(newNode);
                 }else if (attributes.isArray()){
                     ArrayNode oldArray = (ArrayNode)attributes;
-                    renameAtttributesFromArrayNode(oldArray, newAttributes, nestedElementName);
+                    renameAttributesFromArrayNode(oldArray, newAttributes, nestedElementName);
                 }
             });
             renamedAttributesFromNestedElement.put(nestedElementName, newAttributes);
@@ -137,7 +127,7 @@ public class JsonParser {
         return renamedAttributesFromNestedElement;
     }
 
-    private void renameAtttributesFromArrayNode(ArrayNode oldArray, ArrayNode newArray, String parentName){
+    private void renameAttributesFromArrayNode(ArrayNode oldArray, ArrayNode newArray, String parentName){
         oldArray.elements().forEachRemaining(objectNode -> {
             ObjectNode on = (ObjectNode) objectNode;
             ObjectNode newNode = new ObjectNode(new JsonNodeFactory(false));
@@ -155,9 +145,9 @@ public class JsonParser {
 
     private List<List<ObjectNode>> mergeSimpleAttributesWithNestedElementsFromTheSameLevel(Map<String, String> allSimpleAttributes, Map<String, /*ArrayNode*/JsonNode> allNestedElements) {
         List<List<ObjectNode>> mergedSimpleAttributesWithNestedElements = new LinkedList<>();
-        for (Map.Entry<String, /*ArrayNode*/JsonNode> entry : allNestedElements.entrySet()) {
+        for (Map.Entry<String, JsonNode> entry : allNestedElements.entrySet()) {
             List<ObjectNode> mergedSimpleAttributesWithNestedElement = new LinkedList<>();
-            /*ArrayNode*/JsonNode nestedElementValues = entry.getValue();
+            JsonNode nestedElementValues = entry.getValue();
             nestedElementValues.elements().forEachRemaining(item -> {
                 if (item.isObject()) {
                     ObjectNode nestedElement = (ObjectNode) item;
