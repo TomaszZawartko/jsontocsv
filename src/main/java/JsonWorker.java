@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 class JsonWorker {
@@ -35,6 +36,11 @@ class JsonWorker {
 
     public Set<String> createHeaders(final String startParsingNodeName) {
         createHeaders(root, "", startParsingNodeName);
+        return headers;
+    }
+
+    public Set<String> process(final String startParsingNodeName) {
+        process(root, startParsingNodeName, startParsingNodeName);
         return headers;
     }
 
@@ -67,7 +73,10 @@ class JsonWorker {
         object.fields()
                 .forEachRemaining(
                         field -> {
-                            if (!field.getValue().isArray()) {
+                            if(field.getValue().isObject()){
+                                findAllSimpleAttributes(field.getValue());
+                            }
+                            else if (!field.getValue().isArray()) {
                                 allSimpleAttributes.put(field.getKey(), field.getValue().asText());
                             }
                         });
@@ -79,7 +88,10 @@ class JsonWorker {
             object.fields()
                     .forEachRemaining(
                             field -> {
-                                if (field.getValue().isArray()) {
+                                if(field.getValue().isObject()){
+                                    findAllNestedElements(field.getValue());
+                                }
+                                else if (field.getValue().isArray()) {
                                     allNestedElements.put(field.getKey(), (ArrayNode) field.getValue());
                                 }
                             });
@@ -122,7 +134,10 @@ class JsonWorker {
             ObjectNode objectNode = (ObjectNode) node;
             objectNode.fields().forEachRemaining(field -> {
                 JsonNode fieldValue = field.getValue();
-                if (!fieldValue.isArray()) {
+                if(fieldValue.isObject()){
+                    createHeaders(fieldValue,parentName,startParsingNodeName);
+                }
+                else if (!fieldValue.isArray()) {
                     if (!parentName.equals(startParsingNodeName)) {
                         headers.add(parentName + "." + field.getKey());
                     } else {
@@ -135,5 +150,32 @@ class JsonWorker {
             ArrayNode arrayNode = (ArrayNode) node;
             arrayNode.elements().forEachRemaining(item -> createHeaders(item, parentName, startParsingNodeName));
         }
+    }
+
+    private void process(JsonNode node, String parentName, String startParsingNodeName) {
+        if (node.isObject()) {
+            ObjectNode object = (ObjectNode) node;
+            object
+                    .fields()
+                    .forEachRemaining(
+                            entry -> {
+                                if(entry.getValue().isValueNode()){
+                                    String header = parentName.equals(startParsingNodeName) ? entry.getKey() : parentName + "." + entry.getKey();
+                                    headers.add(/*parentName + "." + entry.getKey()*/header);
+                                }else{
+                                    process(entry.getValue(), entry.getKey(), startParsingNodeName);
+                                }
+                            });
+        } else if (node.isArray()) {
+            ArrayNode array = (ArrayNode) node;
+            array
+                    .elements()
+                    .forEachRemaining(
+                            item -> {
+                                process(item, parentName, startParsingNodeName);
+                            });
+        } /*else {
+            headers.add(parentName + "." + attributeName);
+        }*/
     }
 }

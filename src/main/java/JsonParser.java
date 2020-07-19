@@ -21,13 +21,23 @@ public class JsonParser {
         String jsonPreparedToParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
 
         JsonWorker workerAfterPrepared = new JsonWorker(jsonPreparedToParsing);
-        Set<String> headers = workerAfterPrepared.createHeaders(startParsingNodeName);
+        Set<String> headers = workerAfterPrepared.process(startParsingNodeName);/*workerAfterPrepared.createHeaders(startParsingNodeName)*/;
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode jsonAfterPreparing = (ObjectNode) mapper.readTree(jsonPreparedToParsing);
         ArrayNode array = (ArrayNode) jsonAfterPreparing.get(startParsingNodeName);
         List<ObjectNode> firstLevel = new LinkedList<>();
-        array.elements().forEachRemaining(element -> firstLevel.add((ObjectNode) element));
+        array.elements().forEachRemaining(element -> {
+
+            if(element.isObject()){
+                firstLevel.add((ObjectNode) element);
+            } else if(element.isArray()){
+                element.elements().forEachRemaining(arrayElement -> {
+                    firstLevel.add((ObjectNode)arrayElement);
+                });
+            }
+
+        });
         processRoot(firstLevel);
         addBlankValuesToUnfilledAttributes(headers);
         return sortByHeaders(headers);

@@ -1,0 +1,49 @@
+<reservations>
+	<reservation>
+		<id>1318504</id>
+		<add_date>2020-12-10 12:48:09</add_date>
+		<rooms>
+			<room>
+				<id>28902</id>
+				<floor>2</floor>
+			</room>
+			<room>
+				<id>28903</id>
+				<floor>3</floor>
+			</room>
+		</rooms>
+		<customers>
+			<customer>
+				<id>1</id>
+				<name>Jan</name>
+			</customer>
+			<customer>
+				<id>3</id>
+			</customer>
+		</customers>
+	</reservation >
+	<reservation>
+		<id>1318501</id>
+		<add_date>2021-05-07 07:47:05</add_date>
+		<rooms>
+			<room>
+				<id>5</id>
+				<floor>25</floor>
+			</room>
+			<room>
+				<id>6</id>
+			</room>
+		</rooms>
+		<customers>
+			<customer>
+				<id>100</id>
+			</customer>
+			<customer>
+				<name>Janina</name>
+			</customer>
+		</customers>
+	</reservation>
+</reservations>
+
+	
+	 

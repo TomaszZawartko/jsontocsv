@@ -2,10 +2,6 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.apache.commons.io.FileUtils;
-import org.dom4j.Document;
-import org.dom4j.Element;
-import org.dom4j.io.SAXReader;
-import org.json.JSONObject;
 import org.json.XML;
 
 import java.io.File;
@@ -28,7 +24,7 @@ public class JsonMain {
         long end = System.currentTimeMillis() - start;
         System.out.println(end/1000L);*/
 
-        File xmlInput = new File(classLoader.getResource("xml0.xml").getFile());
+        File xmlInput = new File(classLoader.getResource("xml4.xml").getFile());
         String xmlContent = FileUtils.readFileToString(xmlInput);
 
 /*        XmlMapper xmlMapper = new XmlMapper();
@@ -54,7 +50,7 @@ public class JsonMain {
 
         JsonNode node = new XmlMapper().readTree(xmlContent);
         String jObject = XML.toJSONObject(xmlContent).toString();
-        List<Map<String, String>> newres = new JsonParser().parse(jObject,"reservation",Collections.emptyList());
+        List<Map<String, String>> newres = new JsonParser().parse(jObject,"reservations",Collections.emptyList());
 
         System.out.println("");
     }
