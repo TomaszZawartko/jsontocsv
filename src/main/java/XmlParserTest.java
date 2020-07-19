@@ -411,4 +411,35 @@ public class XmlParserTest {
         assertThat(result.get(4).get("customers.name")).isEqualTo("");
 
     }
+
+    @Test
+    void shouldFindStartParsingNode(){
+        ClassLoader classLoader = new JsonMain().getClass().getClassLoader();
+
+        File input = new File(classLoader.getResource("xml6.xml").getFile());
+        String xmlContent = null;
+        try {
+            xmlContent = FileUtils.readFileToString(input);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        XmlParser XmlParser = new XmlParser();
+        List<Map<String, String>> newres = new LinkedList<>();
+        try {
+            newres = XmlParser.parse(xmlContent,"reservations", Collections.emptyList());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assertThat(newres.size()).isEqualTo(2);
+        assertThat(newres.get(0).size()).isEqualTo(2);
+        assertThat(newres.get(0).get("id")).isEqualTo("1318504");
+        assertThat(newres.get(0).get("add_date")).isEqualTo("2020-12-10 12:48:09");
+
+        assertThat(newres.get(1).size()).isEqualTo(2);
+        assertThat(newres.get(1).get("id")).isEqualTo("1318501");
+        assertThat(newres.get(1).get("add_date")).isEqualTo("2021-05-07 07:47:05");
+
+    }
 }

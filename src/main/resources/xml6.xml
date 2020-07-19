@@ -1,0 +1,35 @@
+<root>
+	<id>5</id>
+	<tables>
+		<table>
+			<id>1</id>
+			<name>table1</name>
+		</table>
+		<table>
+			<id>2</id>
+			<name>table2</name>
+		</table>
+	</tables>
+	<reservations>
+		<reservation>
+			<id>1318504</id>
+			<add_date>2020-12-10 12:48:09</add_date>
+		</reservation>
+		<reservation>
+			<id>1318501</id>
+			<add_date>2021-05-07 07:47:05</add_date>
+		</reservation>
+	</reservations>
+	<customer_id>5</customer_id>
+	<customer_tables>
+		<customer_table>
+			<id>1</id>
+			<name>xyz</name>
+		</customer_table>
+		<customer_table>
+			<id>2</id>
+			<name>abc</name>
+		</customer_table>
+	</customer_tables>
+</root>
+	 

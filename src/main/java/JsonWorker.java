@@ -7,13 +7,14 @@ import com.jayway.jsonpath.JsonPath;
 import net.minidev.json.JSONArray;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 class JsonWorker {
 
     private final JsonNode root;
+    private JsonNode startNode = null;
     private final Map<String, String> allSimpleAttributes = new LinkedHashMap<>();
     private final Map<String, JsonNode> allNestedElements = new LinkedHashMap<>();
 
@@ -36,13 +37,34 @@ class JsonWorker {
         return allNestedElements;
     }
 
-    public String prepareJsonBeforeParsing(final List<String> nodesToIgnore, final String startNodeName) {
+    public String findStartNode(final String startNodeName) {
+
+        //JsonNode founded = findStartNode(root,startNodeName);
+
         JSONArray jsonElementsForPreparingToParsing = JsonPath.parse(root.toString()).read("." + startNodeName + "[*]");
         DocumentContext foundedJsonContext = JsonPath.parse(jsonElementsForPreparingToParsing);
         String foundedJsonForPreparingToParsing = foundedJsonContext.jsonString();
         foundedJsonForPreparingToParsing = "{" + startNodeName + ":" + foundedJsonForPreparingToParsing + "}";
         foundedJsonContext = JsonPath.parse(foundedJsonForPreparingToParsing);
         return foundedJsonContext.jsonString();
+    }
+
+    public JsonNode findStartJsonNode(final String startNodeName) {
+        findStartNode(root,startNodeName);
+        return startNode;
+    }
+
+    private void findStartNode(JsonNode node, String startParsingNode){
+        AtomicReference<JsonNode> startNode = new AtomicReference<>();
+        node.fields().forEachRemaining(entry -> {
+            String name = entry.getKey();
+            JsonNode value = entry.getValue();
+            if(name.equals(startParsingNode)){
+                this.startNode = value;
+            } else {
+                findStartNode(value, startParsingNode);
+            }
+        });
     }
 
     private void findAllSimpleAttributes(final JsonNode node) {

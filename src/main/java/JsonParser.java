@@ -20,11 +20,11 @@ public class JsonParser {
 
     public List<Map<String, String>> parse(String json, String startParsingNodeName, List<String> nodesToIgnore) throws IOException {
         JsonWorker worker = new JsonWorker(json);
-        String jsonPreparedToParsing = worker.prepareJsonBeforeParsing(nodesToIgnore, startParsingNodeName);
+        String jsonPreparedToParsing = worker.findStartNode(startParsingNodeName);
 
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode jsonAfterPreparing = (ObjectNode) mapper.readTree(jsonPreparedToParsing);
-        ArrayNode array = (ArrayNode) jsonAfterPreparing.get(startParsingNodeName);
+        //ObjectMapper mapper = new ObjectMapper();
+        //ObjectNode jsonAfterPreparing = (ObjectNode) mapper.readTree(jsonPreparedToParsing);
+        JsonNode array = worker.findStartJsonNode(startParsingNodeName); //(ArrayNode) jsonAfterPreparing.get(startParsingNodeName);
         List<ObjectNode> firstLevel = new LinkedList<>();
         array.elements().forEachRemaining(element -> {
             if(element.isObject()){
