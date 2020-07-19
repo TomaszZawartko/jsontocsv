@@ -21,7 +21,7 @@ class JsonWorker {
 
     private final JsonNode root;
     private final Map<String, String> allSimpleAttributes = new LinkedHashMap<>();
-    private final Map<String, ArrayNode> allNestedElements = new LinkedHashMap<>();
+    private final Map<String, /*ArrayNode*/JsonNode> allNestedElements = new LinkedHashMap<>();
     private final List<String> jsonPathsToDelete = new LinkedList<>();
     private final Set<String> headers = new LinkedHashSet<>();
 
@@ -49,7 +49,7 @@ class JsonWorker {
         return allSimpleAttributes;
     }
 
-    public Map<String, ArrayNode> findAllNestedElements() {
+    public Map<String, /*ArrayNode*/JsonNode> findAllNestedElements() {
         findAllNestedElements(root);
         return allNestedElements;
     }
@@ -63,7 +63,7 @@ class JsonWorker {
         foundedJsonContext = JsonPath.parse(foundedJsonForPreparingToParsing);
 
         for (String jsonPathToDelete : jsonPathsToRemove) {
-            foundedJsonContext.delete(jsonPathToDelete);
+            //foundedJsonContext.delete(jsonPathToDelete);
         }
         return foundedJsonContext.jsonString();
     }
@@ -73,11 +73,16 @@ class JsonWorker {
         object.fields()
                 .forEachRemaining(
                         field -> {
-                            if(field.getValue().isObject()){
+                            /*if(field.getValue().isObject()){
                                 findAllSimpleAttributes(field.getValue());
                             }
                             else if (!field.getValue().isArray()) {
                                 allSimpleAttributes.put(field.getKey(), field.getValue().asText());
+                            }*/
+                            if(field.getValue().isValueNode()){
+                                allSimpleAttributes.put(field.getKey(), field.getValue().asText());
+                            }else {
+                                //findAllSimpleAttributes(field.getValue());
                             }
                         });
     }
@@ -88,11 +93,14 @@ class JsonWorker {
             object.fields()
                     .forEachRemaining(
                             field -> {
-                                if(field.getValue().isObject()){
+                                /*if(field.getValue().isObject()){
                                     findAllNestedElements(field.getValue());
                                 }
                                 else if (field.getValue().isArray()) {
                                     allNestedElements.put(field.getKey(), (ArrayNode) field.getValue());
+                                }*/
+                                if(!field.getValue().isValueNode()){
+                                    allNestedElements.put(field.getKey(), /*(ArrayNode)*/ field.getValue());
                                 }
                             });
         }
@@ -121,6 +129,8 @@ class JsonWorker {
                         jsonPathsToDelete.add(jsonPath);
                     }
                     createJsonPathsToDelete(fieldValue, nodeNameToDelete, jsonPath);
+                }else if(fieldValue.isObject()){
+                    createJsonPathsToDelete(fieldValue, nodeNameToDelete,path);
                 }
             });
         } else if (node.isArray()) {
@@ -174,8 +184,6 @@ class JsonWorker {
                             item -> {
                                 process(item, parentName, startParsingNodeName);
                             });
-        } /*else {
-            headers.add(parentName + "." + attributeName);
-        }*/
+        }
     }
 }
